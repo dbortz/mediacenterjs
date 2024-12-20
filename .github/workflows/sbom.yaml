@@ -1,0 +1,32 @@
+name: Generate an SBOM from source code
+
+on:
+  pull_request:
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  generate-sbom:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate SBOM from the source code
+        uses: anchore/sbom-action@v0
+        with:
+          path: "."
+          output-file: /tmp/sbom.spdx.json
+          config: .github/edgebit/source-syft.yaml
+          upload-artifact: "false"
+
+      - name: Upload SBOM to EdgeBit
+        uses: edgebitio/edgebit-build@v1
+        with:
+          edgebit-url: "https://davebortz.edgebit.io"
+          token: ${{ secrets.EDGEBIT_TOKEN }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          sbom-file: /tmp/sbom.spdx.json
+          component: "dbortz-mediacenterjs"
+          tags: ${{ github.ref == 'refs/heads/master' && 'latest' || '' }}
